@@ -74,7 +74,27 @@ docker run -d --name searxng \
   -e SEARXNG_SECRET_KEY=your-secret-key \
   searxng/searxng
 
-# Or Docker Compose — see searxng/docker-compose.yml in this repo
+# Or Docker Compose (recommended for persistence)
+# See searxng/docker-compose.yml in this repo, or use:
+```
+
+```yaml
+# docker-compose.yml
+services:
+  searxng:
+    image: searxng/searxng
+    container_name: searxng
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      - SEARXNG_SECRET=your-secret-key-change-me
+      - SEARXNG_BASE_URL=http://localhost:8080
+    volumes:
+      - searxng:/etc/searxng
+    restart: unless-stopped
+
+volumes:
+  searxng:
 ```
 
 **Step 2: Enable JSON output**
