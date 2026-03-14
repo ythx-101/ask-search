@@ -1,0 +1,28 @@
+# Minimal SearxNG settings for Docker
+# Enables JSON output for ask-search API access
+
+general:
+  debug: false
+  instance_name: "ask-search SearxNG"
+
+server:
+  secret_key: "&{SEARXNG_SECRET}"
+  bind_address: "0.0.0.0"
+  port: 8080
+
+ui:
+  static_use_hash: true
+  default_theme: simple
+
+engines:
+  - name: google
+    engine: google
+    shortcut: google
+
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+
+  - name: brave
+    engine: brave
+    shortcut: brave

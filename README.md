@@ -63,6 +63,28 @@ bash install.sh
 ask-search "hello world"
 ```
 
+### Full setup with Docker Compose (Recommended)
+
+```bash
+# Clone and navigate to the project
+git clone https://github.com/ythx-101/ask-search
+cd ask-search
+
+# Generate a secure secret key
+python3 -c "import secrets; print('SEARXNG_SECRET=' + secrets.token_hex(32))"
+
+# Copy .env.example to .env and set your secret key
+cp searxng/.env.example searxng/.env
+# Edit .env with your generated secret
+
+# Start SearxNG
+cd searxng && docker-compose up -d
+
+# Configure ask-search with your secret
+export SEARXNG_SECRET="your-generated-secret"
+ask-search "hello world"
+```
+
 ### Full setup (SearxNG + ask-search)
 
 **Step 1: Deploy SearxNG**
