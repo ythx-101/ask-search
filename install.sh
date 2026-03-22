@@ -37,6 +37,13 @@ install -m 755 "$TMPFILE" "$INSTALL_BIN/ask-search"
 rm -f "$TMPFILE"
 echo "✓ ask-search installed to $INSTALL_BIN/ask-search"
 
+# Optional: install tavily-python if TAVILY_API_KEY is set
+if [ -n "${TAVILY_API_KEY:-}" ]; then
+    echo ""
+    echo "TAVILY_API_KEY detected — installing tavily-python ..."
+    pip install tavily-python && echo "✓ tavily-python installed" || echo "⚠ Failed to install tavily-python"
+fi
+
 # Test
 echo ""
 echo "Testing connection to SearxNG at ${SEARXNG_URL:-http://localhost:8080} ..."

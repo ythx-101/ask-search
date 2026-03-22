@@ -19,6 +19,21 @@ import sys, json, urllib.parse, argparse, os, subprocess
 
 VERSION = "1.0.0"
 
+# --- Tavily support (opt-in via SEARCH_PROVIDER=tavily + TAVILY_API_KEY) ---
+
+def _get_search_provider():
+    return os.environ.get("SEARCH_PROVIDER", "searxng").lower()
+
+def tavily_search(query, num=10):
+    """Search via Tavily API. Requires tavily-python and TAVILY_API_KEY."""
+    try:
+        from tavily import TavilyClient
+    except ImportError:
+        raise RuntimeError("tavily-python not installed. Run: pip install tavily-python")
+    client = TavilyClient()
+    response = client.search(query=query, max_results=min(num, 20), search_depth="basic")
+    return response.get("results", [])
+
 def _search_url():
     base = os.environ.get("SEARXNG_URL", "http://localhost:8080")
     return base.rstrip("/") + "/search"
