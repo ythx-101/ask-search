@@ -2,8 +2,12 @@
 """
 ask-search MCP Server — for Antigravity / Claude Code MCP integration
 
+Requires Python 3.10+ (required by the `mcp` package).
+
 Install:
   pip install mcp
+
+Optional: set TAVILY_API_KEY in the "env" block to enable the web_search_tavily tool.
 
 Add to your MCP config:
   {
@@ -25,7 +29,7 @@ except ImportError:
     print("Error: mcp package not installed. Run: pip install mcp", file=sys.stderr)
     sys.exit(1)
 
-from core import searxng_search, search, fmt_results, tavily_search
+from core import searxng_search, search, tavily_search
 
 mcp = FastMCP("ask-search")
 

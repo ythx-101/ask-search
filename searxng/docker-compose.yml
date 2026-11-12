@@ -1,8 +1,6 @@
 # Docker Compose for SearxNG
-# Usage: cd searxng && docker-compose up -d
-# Then configure ask-search: ask-search --searxng-url http://localhost:8080
-
-version: '3.8'
+# Usage: cd searxng && cp .env.example .env && docker compose up -d
+# Then point ask-search at it: export SEARXNG_URL=http://localhost:8080
 
 services:
   searxng:
@@ -14,20 +12,14 @@ services:
       # Generate a secure secret key: python3 -c "import secrets; print(secrets.token_hex(32))"
       - SEARXNG_SECRET=${SEARXNG_SECRET:-your-secret-key-change-in-production}
       - SEARXNG_BASE_URL=http://localhost:8080
-      # Enable JSON output for API access
-      - SEARXNG_SETTINGS_SOURCE=docker
     volumes:
-      - ./searxng.yml:/etc/searxng/settings.yml:ro
+      # JSON output is enabled in searxng.yml (search.formats)
+      - ./searxng.yml:/etc/searxng/settings.yml
     restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
 
-# Usage:
+# Steps:
 # 1. Generate a secret key: python3 -c "import secrets; print(secrets.token_hex(32))"
 # 2. Copy .env.example to .env and set SEARXNG_SECRET
-# 3. Run: docker-compose up -d
-# 4. Access SearxNG UI at http://localhost:8080
-# 5. Configure ask-search: ask-search --searxng-url http://localhost:8080 --searxng-secret your-secret
+# 3. Run: docker compose up -d
+# 4. SearxNG UI: http://localhost:8080
+# 5. Use ask-search: export SEARXNG_URL=http://localhost:8080

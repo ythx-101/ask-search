@@ -13,7 +13,9 @@ Usage:
   ask-search "query" --json             # raw JSON output
 
 Environment:
-  SEARXNG_URL   SearxNG endpoint (default: http://localhost:8080)
+  SEARXNG_URL       SearxNG endpoint (default: http://localhost:8080)
+  SEARCH_PROVIDER   "searxng" (default) or "tavily"
+  TAVILY_API_KEY    Tavily API key (required when SEARCH_PROVIDER=tavily)
 """
 import sys, json, urllib.parse, argparse, os, subprocess
 
@@ -50,12 +52,18 @@ def search(query, num=10, engines=None, lang=None, categories=None):
     url = _search_url() + "?" + urllib.parse.urlencode(params)
     # Use subprocess curl to avoid urllib HTTP/1.0 compatibility issues
     result = subprocess.run(
-        ["curl", "-s", "--max-time", "15", url],
+        ["curl", "-sS", "--max-time", "15", url],
         capture_output=True, text=True, timeout=20
     )
     if result.returncode != 0:
         raise RuntimeError(f"curl failed: {result.stderr[:200]}")
-    data = json.loads(result.stdout)
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        raise RuntimeError(
+            "SearxNG did not return JSON (is 'json' enabled in search.formats?): "
+            + result.stdout[:120]
+        )
     return data.get("results", [])[:num]
 
 def fmt_results(results, urls_only=False):

@@ -21,6 +21,12 @@ fi
 
 # Install global command
 echo "Installing ask-search to $INSTALL_BIN ..."
+mkdir -p "$INSTALL_BIN" 2>/dev/null || true
+if [ ! -w "$INSTALL_BIN" ]; then
+    echo "ERROR: $INSTALL_BIN is not writable."
+    echo "Run with sudo, or: bash install.sh ~/.local/bin"
+    exit 1
+fi
 
 # Create wrapper with hardcoded path (single-quotes prevent $@ expansion in heredoc)
 WRAPPER=$(cat << 'WRAPPEREOF'
@@ -46,13 +52,17 @@ fi
 
 # Test
 echo ""
-echo "Testing connection to SearxNG at ${SEARXNG_URL:-http://localhost:8080} ..."
-if python3 "$SCRIPT_DIR/scripts/core.py" "test" --num 1 &>/dev/null; then
-    echo "✓ SearxNG reachable — ask-search is ready!"
+if [ "$(echo "${SEARCH_PROVIDER:-searxng}" | tr '[:upper:]' '[:lower:]')" = "tavily" ]; then
+    echo "Tavily mode — skip SearxNG check"
 else
-    echo "⚠ SearxNG not reachable at ${SEARXNG_URL:-http://localhost:8080}"
-    echo "  Set SEARXNG_URL env var or deploy SearxNG first."
-    echo "  See README for SearxNG setup instructions."
+    echo "Testing connection to SearxNG at ${SEARXNG_URL:-http://localhost:8080} ..."
+    if python3 "$SCRIPT_DIR/scripts/core.py" "test" --num 1 &>/dev/null; then
+        echo "✓ SearxNG reachable — ask-search is ready!"
+    else
+        echo "⚠ SearxNG not reachable at ${SEARXNG_URL:-http://localhost:8080}"
+        echo "  Set SEARXNG_URL env var or deploy SearxNG first."
+        echo "  See README for SearxNG setup instructions."
+    fi
 fi
 
 echo ""

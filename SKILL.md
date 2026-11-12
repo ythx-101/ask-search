@@ -1,11 +1,11 @@
 ---
 name: ask-search
-description: "Web search via self-hosted SearxNG. Aggregates Google, Bing, DuckDuckGo, Brave. Returns title/url/snippet. Zero API key required."
+description: "Web search via self-hosted SearxNG. Aggregates Google, Bing, DuckDuckGo, Brave. Returns title/url/snippet. Zero API key required. Optional Tavily backend via SEARCH_PROVIDER=tavily."
 ---
 
 # ask-search
 
-Web search powered by [SearxNG](https://github.com/searxng/searxng). Aggregates multiple search engines, zero API key, full privacy.
+Web search powered by [SearxNG](https://github.com/searxng/searxng). Aggregates multiple search engines, no API key needed (optional Tavily backend).
 
 ## Usage
 
@@ -37,4 +37,10 @@ ask-search "query" --json                  # raw JSON
 
 ## Setup
 
-Requires SearxNG running locally. Set `SEARXNG_URL` if not on default port 8080.
+Requires SearxNG running locally, with `json` in `search.formats` (the bundled `searxng/` Docker Compose setup does this). Set `SEARXNG_URL` if not on default port 8080.
+
+```bash
+bash install.sh            # installs the `ask-search` command (sudo, or: bash install.sh ~/.local/bin)
+```
+
+Optional Tavily backend: `SEARCH_PROVIDER=tavily` + `TAVILY_API_KEY` (`--engines/--lang/--categories` are ignored in this mode).

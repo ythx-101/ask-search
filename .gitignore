@@ -1,1 +1,7 @@
-scripts/__pycache__/
+__pycache__/
+*.pyc
+searxng/.env
+.env
+.venv/
+venv/
+.pytest_cache/

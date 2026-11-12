@@ -1,0 +1,56 @@
+# ask-search
+
+> ask-search is a self-hosted web search CLI and MCP server for AI agents. It wraps SearxNG so Claude Code, OpenClaw, Antigravity or any shell can search Google, Bing, DuckDuckGo, Brave and more without a paid search API key. Tavily is an optional backend.
+
+给 AI Agent 用的自托管联网搜索：包装 SearxNG，一条命令或一个 MCP server 即可聚合多个搜索引擎，无需付费搜索 API key。
+
+## What it is / Who it's for
+
+A small Python CLI (`ask-search`) plus an MCP server. For people running AI agents that need web search and prefer not to depend on a paid search API.
+
+## Install
+
+1. Start SearxNG: `cd searxng && cp .env.example .env && docker compose up -d`
+2. `bash install.sh` (or `sudo bash install.sh`, or `bash install.sh ~/.local/bin`)
+3. `ask-search "hello world"`
+
+## CLI usage
+
+`ask-search "query" [options]`
+
+| Flag | Short | Description |
+|------|-------|-------------|
+| `--num N` | `-n` | Max results (default 10) |
+| `--engines` | `-e` | e.g. google,bing,duckduckgo,brave |
+| `--lang` | `-l` | e.g. zh-CN, en, ja, ko |
+| `--categories` | `-c` | e.g. general,news,images,science |
+| `--json` | `-j` | Raw JSON output |
+| `--urls-only` | `-u` | URLs only |
+| `--version` | `-V` | Print version |
+
+## Environment variables
+
+- `SEARXNG_URL` — SearxNG endpoint (default `http://localhost:8080`)
+- `SEARCH_PROVIDER` — `searxng` (default) or `tavily`
+- `TAVILY_API_KEY` — required when `SEARCH_PROVIDER=tavily`
+
+## MCP tools
+
+- `web_search` — search via SearxNG
+- `web_search_news` — news search via SearxNG
+- `web_search_tavily` — search via Tavily (needs `TAVILY_API_KEY`)
+
+The MCP server needs Python 3.10+ and `pip install mcp`.
+
+## Limitations
+
+- Requires a SearxNG instance with `json` in `search.formats`.
+- In Tavily mode, `--engines`, `--lang` and `--categories` are ignored.
+- Fetching full pages (deep-dive) can be blocked by the target site's anti-bot measures.
+
+## Links
+
+- [README](README.md)
+- [SKILL.md](SKILL.md)
+- [LICENSE](LICENSE)
+- Repository: https://github.com/ythx-101/ask-search
