@@ -127,8 +127,9 @@ ask-search "query" -e google,brave    # specific engines
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SEARXNG_URL` | `http://localhost:8080` | SearxNG endpoint |
-| `SEARCH_PROVIDER` | `searxng` | Search backend: `searxng` or `tavily` |
+| `SEARCH_PROVIDER` | `searxng` | Search backend: `searxng`, `tavily` or `youcom` |
 | `TAVILY_API_KEY` | *(none)* | Tavily API key (required when `SEARCH_PROVIDER=tavily`) — get one at [app.tavily.com](https://app.tavily.com) |
+| `YDC_API_KEY` | *(none)* | Optional You.com API key for higher limits when `SEARCH_PROVIDER=youcom` (works without one). Get one at [you.com/platform](https://you.com/platform?utm_source=ythx-101-ask-search&utm_medium=integration&utm_campaign=2026-11-oss-integrations) |
 
 ```bash
 # SearxNG (default)
@@ -139,6 +140,12 @@ ask-search "query"
 export SEARCH_PROVIDER=tavily
 export TAVILY_API_KEY=tvly-YOUR_API_KEY
 ask-search "query"
+
+# You.com (opt-in, no API key needed)
+export SEARCH_PROVIDER=youcom
+ask-search "query"
+# optional, for higher limits:
+export YDC_API_KEY=YOUR_YDC_API_KEY
 ```
 
 ## 🤖 MCP Integration (Antigravity / Claude Code)
@@ -170,6 +177,7 @@ MCP tools provided:
 - `web_search` — search via SearxNG
 - `web_search_news` — news search via SearxNG
 - `web_search_tavily` — search via Tavily API (requires `TAVILY_API_KEY`)
+- `web_search_youcom`: search via You.com (no key needed; `YDC_API_KEY` optional for higher limits)
 
 ## 🦞 OpenClaw Skill
 
@@ -226,16 +234,17 @@ ask-search/
 |---|---|---|---|
 | ask-search + SearxNG | No | Yes | You maintain a SearxNG container |
 | ask-search + Tavily | Yes (Tavily) | No | Use when you don't want to run SearxNG |
+| ask-search + You.com | No (optional `YDC_API_KEY`) | No | Use when you don't want to run SearxNG or get a key |
 | Commercial search APIs | Yes | No | Pay-per-use |
 | Built-in agent web search | Depends on platform | No | Queries go through the platform provider |
 | Perplexica | No | Yes | Full AI search app with a UI; ask-search is a minimal CLI take on the same idea |
 
-Privacy note: no third-party search API sees your queries; SearxNG forwards them to upstream engines from your own server.
+Privacy note: in SearxNG mode no third-party search API sees your queries; SearxNG forwards them to upstream engines from your own server.
 
 ## ❓ FAQ
 
 **Does ask-search need an API key?**
-Not in the default SearxNG mode. In Tavily mode (`SEARCH_PROVIDER=tavily`) you need `TAVILY_API_KEY`.
+Not in the default SearxNG mode. In Tavily mode (`SEARCH_PROVIDER=tavily`) you need `TAVILY_API_KEY`. You.com mode (`SEARCH_PROVIDER=youcom`) works without a key, and `YDC_API_KEY` raises the limits.
 
 **How do I use it in Claude Code?**
 Call the CLI from Bash (`ask-search "query"`), or register the MCP server (see MCP Integration above).
@@ -251,6 +260,9 @@ No third-party search API sees your queries, but SearxNG still forwards them to 
 
 **Can I use Tavily instead of SearxNG?**
 Yes: `export SEARCH_PROVIDER=tavily TAVILY_API_KEY=tvly-YOUR_API_KEY`, and install `tavily-python` (`pip install tavily-python`; `install.sh` does this automatically when `TAVILY_API_KEY` is set). In Tavily mode `--engines`, `--lang` and `--categories` are ignored.
+
+**Can I use You.com instead of SearxNG?**
+Yes: `export SEARCH_PROVIDER=youcom`. No key, account or extra package is needed (it uses curl like the SearxNG path). The keyless tier allows about 100 searches a day; set `YDC_API_KEY` for more. In You.com mode `--engines` and `--lang` are ignored, and `--categories news` puts news results first.
 
 **Does it work on Windows?**
 It needs Python 3 and curl; `install.sh` is a bash script, so on Windows use WSL. Not tested on native Windows.

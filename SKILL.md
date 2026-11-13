@@ -44,3 +44,5 @@ bash install.sh            # installs the `ask-search` command (sudo, or: bash i
 ```
 
 Optional Tavily backend: `SEARCH_PROVIDER=tavily` + `TAVILY_API_KEY` (`--engines/--lang/--categories` are ignored in this mode).
+
+Optional You.com backend: `SEARCH_PROVIDER=youcom`, no key needed (`YDC_API_KEY` optional for higher limits; `--engines/--lang` are ignored in this mode).

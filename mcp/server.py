@@ -8,6 +8,7 @@ Install:
   pip install mcp
 
 Optional: set TAVILY_API_KEY in the "env" block to enable the web_search_tavily tool.
+The web_search_youcom tool works with no key; set YDC_API_KEY for higher limits.
 
 Add to your MCP config:
   {
@@ -29,7 +30,7 @@ except ImportError:
     print("Error: mcp package not installed. Run: pip install mcp", file=sys.stderr)
     sys.exit(1)
 
-from core import searxng_search, search, tavily_search
+from core import searxng_search, search, tavily_search, youcom_search
 
 mcp = FastMCP("ask-search")
 
@@ -75,6 +76,23 @@ def web_search_tavily(query: str, num_results: int = 10) -> str:
     import json
     try:
         results = tavily_search(query, min(num_results, 20))
+        return json.dumps({"query": query, "results": results}, ensure_ascii=False, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+@mcp.tool()
+def web_search_youcom(query: str, num_results: int = 10) -> str:
+    """
+    Search the web via You.com. Returns JSON array of results with title, url, content.
+    Works without an API key. Set YDC_API_KEY for higher limits.
+
+    Args:
+        query: Search query string
+        num_results: Number of results to return (default 10, max 20)
+    """
+    import json
+    try:
+        results = youcom_search(query, min(num_results, 20))
         return json.dumps({"query": query, "results": results}, ensure_ascii=False, indent=2)
     except Exception as e:
         return json.dumps({"error": str(e)})
