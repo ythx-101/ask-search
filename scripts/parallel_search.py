@@ -1,5 +1,6 @@
 """Anonymous Parallel Search MCP adapter."""
 
+import re
 from urllib.parse import urlsplit
 
 from core import VERSION
@@ -7,6 +8,12 @@ from core import VERSION
 PARALLEL_MCP_URL = "https://mcp.parallel.ai/mcp"
 MAX_RESPONSE_BYTES = 1024 * 1024
 SEARCH_TIMEOUT = 20
+# Preserve tabs and line breaks in excerpts while escaping other C0/C1 controls.
+UNSAFE_CONTROLS = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
+
+
+def _escape_controls(text):
+    return UNSAFE_CONTROLS.sub(lambda match: f"\\x{ord(match[0]):02x}", text)
 
 
 async def parallel_search(query, num=10):
@@ -95,7 +102,7 @@ async def parallel_search(query, num=10):
         if not isinstance(item, dict):
             raise RuntimeError("Invalid Parallel Search result")
         url, title, excerpts = item.get("url"), item.get("title"), item.get("excerpts")
-        if not isinstance(url, str) or any(char.isspace() or ord(char) < 32 or char == "\x7f" for char in url):
+        if not isinstance(url, str) or UNSAFE_CONTROLS.search(url) or any(char.isspace() for char in url):
             raise RuntimeError("Invalid Parallel Search result")
         try:
             source = urlsplit(url)
@@ -107,5 +114,9 @@ async def parallel_search(query, num=10):
             or not isinstance(excerpts, list) or not all(isinstance(text, str) for text in excerpts)
         ):
             raise RuntimeError("Invalid Parallel Search result")
-        results.append({"title": title or "", "url": url, "content": "\n\n".join(excerpts)})
+        results.append({
+            "title": _escape_controls(title or ""),
+            "url": url,
+            "content": _escape_controls("\n\n".join(excerpts)),
+        })
     return results

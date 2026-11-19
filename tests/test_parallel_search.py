@@ -23,6 +23,11 @@ import parallel_search  # noqa: E402
 SOURCE_URL = "https://docs.python.org/3/library/argparse.html?highlight=parser#usage"
 QUERY = "Python argparse documentation"
 RESULT = {"title": "argparse", "url": SOURCE_URL, "content": "An excerpt"}
+CONTROL_RESULT = {
+    "title": "arg\\x07parse",
+    "url": SOURCE_URL,
+    "content": "Première ligne\nSecond\\x0d line\twith\\x9b text",
+}
 
 
 class SearchFixture(BaseHTTPRequestHandler):
@@ -105,6 +110,9 @@ class SearchFixture(BaseHTTPRequestHandler):
             reply["result"] = {"isError": True, "content": [{"type": "text", "text": "untrusted error"}]}
         else:
             hit = {"title": "argparse", "url": SOURCE_URL, "excerpts": ["An excerpt"]}
+            if mode == "terminal_controls":
+                hit["title"] = "arg\x07parse"
+                hit["excerpts"] = ["Première ligne\nSecond\r line\twith\x9b text"]
             if mode == "unsafe_url":
                 hit["url"] = "javascript:alert(1)"
             if mode in ("large_json", "large_sse"):
@@ -218,13 +226,26 @@ class ParallelSearchTests(unittest.TestCase):
                 self.assertEqual(sum(request["method"] == "tools/call" for request in self.server.requests), 1)
 
     def test_urls_only_rejects_source_urls_with_whitespace_or_controls(self):
-        for separator in ("\n", "\t", "\u2028", "\x00"):
+        for separator in ("\n", "\t", "\u2028", "\x00", "\x9b"):
             with self.subTest(separator=separator), mock.patch(
                 __name__ + ".SOURCE_URL", f"{SOURCE_URL}{separator}https://example.com/"
             ):
                 status, output = self.cli("parallel", QUERY, "--urls-only", "--num", "1")
                 self.assertEqual(status, 1)
                 self.assertEqual(json.loads(output), {"error": "Invalid Parallel Search result"})
+
+    def test_cli_escapes_result_controls_in_plain_text_and_json(self):
+        self.server.mode = "terminal_controls"
+        status, output = self.cli("parallel", QUERY, "--num", "1")
+        self.assertEqual(status, 0)
+        self.assertIn("[1] " + CONTROL_RESULT["title"], output)
+        self.assertIn(SOURCE_URL, output)
+        self.assertIn(CONTROL_RESULT["content"], output)
+
+        status, output = self.cli("parallel", QUERY, "--num", "1", "--json")
+        self.assertEqual(status, 0)
+        self.assertNotIn("\x9b", output)
+        self.assertEqual(json.loads(output)["results"], [CONTROL_RESULT])
 
     def test_valid_empty_results_are_distinct_from_provider_failure(self):
         self.server.mode = "empty"
@@ -238,7 +259,7 @@ class ParallelSearchTests(unittest.TestCase):
         self.assertEqual(json.loads(output)["results"], [RESULT])
         self.assertTrue(any(request["http_method"] == "DELETE" for request in self.server.requests))
 
-    def mcp_search(self, provider):
+    def mcp_search(self, provider, expected=RESULT):
         async def call_search():
             setup = (
                 f"import sys, runpy; sys.path.insert(0, {str(ROOT / 'scripts')!r}); "
@@ -259,7 +280,10 @@ class ParallelSearchTests(unittest.TestCase):
                         for name in ("web_search", "web_search", "web_search_news"):
                             result = await session.call_tool(name, {"query": QUERY, "num_results": 1})
                             self.assertFalse(result.isError)
-                            self.assertEqual(json.loads(result.content[0].text)["results"], [RESULT])
+                            self.assertEqual(
+                                json.loads(result.content[0].text)["results"],
+                                [RESULT if name == "web_search_news" else expected],
+                            )
         asyncio.run(call_search())
 
     def test_stdio_search_routes_only_the_selected_tool_to_parallel(self):
@@ -275,6 +299,10 @@ class ParallelSearchTests(unittest.TestCase):
                 self.server.requests.clear()
                 self.mcp_search(provider)
                 self.assertEqual([urlsplit(request["path"]).path for request in self.server.requests], ["/search"] * 3)
+
+    def test_stdio_search_escapes_result_controls(self):
+        self.server.mode = "terminal_controls"
+        self.mcp_search("parallel", expected=CONTROL_RESULT)
 
 
 if __name__ == "__main__":
