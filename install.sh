@@ -52,8 +52,11 @@ fi
 
 # Test
 echo ""
-if [ "$(echo "${SEARCH_PROVIDER:-searxng}" | tr '[:upper:]' '[:lower:]')" = "tavily" ]; then
+provider=$(echo "${SEARCH_PROVIDER:-searxng}" | tr '[:upper:]' '[:lower:]')
+if [ "$provider" = "tavily" ]; then
     echo "Tavily mode — skip SearxNG check"
+elif [ "$provider" = "parallel" ]; then
+    echo "Parallel mode selected. Install its SDK with: python3 -m pip install 'mcp>=1.30,<2'"
 else
     echo "Testing connection to SearxNG at ${SEARXNG_URL:-http://localhost:8080} ..."
     if python3 "$SCRIPT_DIR/scripts/core.py" "test" --num 1 &>/dev/null; then
