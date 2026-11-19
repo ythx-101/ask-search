@@ -225,11 +225,17 @@ class ParallelSearchTests(unittest.TestCase):
                 self.assertTrue(all(request["path"] == "/mcp" for request in self.server.requests))
                 self.assertEqual(sum(request["method"] == "tools/call" for request in self.server.requests), 1)
 
-    def test_urls_only_rejects_source_urls_with_whitespace_or_controls(self):
-        for separator in ("\n", "\t", "\u2028", "\x00", "\x9b"):
-            with self.subTest(separator=separator), mock.patch(
-                __name__ + ".SOURCE_URL", f"{SOURCE_URL}{separator}https://example.com/"
-            ):
+    def test_urls_only_rejects_malformed_source_urls(self):
+        invalid_urls = [
+            f"{SOURCE_URL}{separator}https://example.com/"
+            for separator in ("\n", "\t", "\u2028", "\x00", "\x9b")
+        ] + [
+            "https://example.org:65536/",
+            "https://example.org:not-a-port/",
+            "https://example.org\\example.com/",
+        ]
+        for url in invalid_urls:
+            with self.subTest(url=url), mock.patch(__name__ + ".SOURCE_URL", url):
                 status, output = self.cli("parallel", QUERY, "--urls-only", "--num", "1")
                 self.assertEqual(status, 1)
                 self.assertEqual(json.loads(output), {"error": "Invalid Parallel Search result"})

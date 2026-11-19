@@ -102,14 +102,19 @@ async def parallel_search(query, num=10):
         if not isinstance(item, dict):
             raise RuntimeError("Invalid Parallel Search result")
         url, title, excerpts = item.get("url"), item.get("title"), item.get("excerpts")
-        if not isinstance(url, str) or UNSAFE_CONTROLS.search(url) or any(char.isspace() for char in url):
+        if (
+            not isinstance(url, str) or "\\" in url
+            or UNSAFE_CONTROLS.search(url) or any(char.isspace() for char in url)
+        ):
             raise RuntimeError("Invalid Parallel Search result")
         try:
             source = urlsplit(url)
+            # The parser validates the port only when the property is accessed.
+            _ = source.port
         except ValueError:
-            source = None
+            raise RuntimeError("Invalid Parallel Search result") from None
         if (
-            not source or source.scheme not in ("http", "https") or not source.hostname
+            source.scheme not in ("http", "https") or not source.hostname
             or source.username is not None or (title is not None and not isinstance(title, str))
             or not isinstance(excerpts, list) or not all(isinstance(text, str) for text in excerpts)
         ):
