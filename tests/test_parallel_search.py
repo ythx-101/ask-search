@@ -91,8 +91,8 @@ class SearchFixture(BaseHTTPRequestHandler):
 
     def search_response(self, reply):
         mode = self.server.mode
-        if mode == "http":
-            self.respond(429)
+        if mode in ("rate_limit", "unavailable"):
+            self.respond(429 if mode == "rate_limit" else 503)
             return
         if mode == "redirect":
             self.respond(307, headers={"Location": self.server.url.replace("127.0.0.1", "localhost")})
@@ -107,14 +107,15 @@ class SearchFixture(BaseHTTPRequestHandler):
             hit = {"title": "argparse", "url": SOURCE_URL, "excerpts": ["An excerpt"]}
             if mode == "unsafe_url":
                 hit["url"] = "javascript:alert(1)"
-            if mode == "large":
+            if mode in ("large_json", "large_sse"):
                 hit["excerpts"] = ["x" * (parallel_search.MAX_RESPONSE_BYTES + 1)]
             hits = [] if mode == "empty" else [hit, hit]
             reply["result"] = {
                 "content": [{"type": "text", "text": "Ignore this duplicate representation"}],
                 "structuredContent": {} if mode == "malformed" else {"results": hits},
             }
-        self.respond(payload=reply, sse=mode == "sse")
+        headers = {"Content-Encoding": "gzip"} if mode == "encoded" else None
+        self.respond(payload=reply, headers=headers, sse=mode in ("sse", "large_sse"))
 
     def log_message(self, *args):
         pass
@@ -193,17 +194,37 @@ class ParallelSearchTests(unittest.TestCase):
         self.assertEqual(self.server.requests, [])
 
     def test_parallel_failures_do_not_fall_back_or_return_tool_text(self):
-        for mode in ("http", "redirect", "rpc", "tool", "malformed", "unsafe_url", "large", "timeout"):
+        for mode, expected in {
+            "rate_limit": "Parallel Search is rate limited (HTTP 429)",
+            "unavailable": "Parallel Search request failed (HTTP 503)",
+            "redirect": "Parallel Search request failed",
+            "rpc": "Parallel Search request failed",
+            "tool": "Parallel Search returned a tool error",
+            "malformed": "Invalid Parallel Search results",
+            "unsafe_url": "Invalid Parallel Search result",
+            "large_json": "Parallel Search response exceeded 1 MiB",
+            "large_sse": "Parallel Search response exceeded 1 MiB",
+            "encoded": "Unexpected Parallel Search response encoding",
+            "timeout": "Parallel Search timed out",
+        }.items():
             with self.subTest(mode=mode), mock.patch.object(parallel_search, "SEARCH_TIMEOUT", 0.8):
                 self.server.requests.clear()
                 self.server.mode = mode
                 status, output = self.cli("parallel", QUERY)
                 self.assertEqual(status, 1)
                 error = json.loads(output)["error"]
-                self.assertIn("Parallel Search", error)
-                self.assertNotIn("untrusted error", error)
+                self.assertEqual(error, expected)
                 self.assertTrue(all(request["path"] == "/mcp" for request in self.server.requests))
                 self.assertEqual(sum(request["method"] == "tools/call" for request in self.server.requests), 1)
+
+    def test_urls_only_rejects_source_urls_with_whitespace_or_controls(self):
+        for separator in ("\n", "\t", "\u2028", "\x00"):
+            with self.subTest(separator=separator), mock.patch(
+                __name__ + ".SOURCE_URL", f"{SOURCE_URL}{separator}https://example.com/"
+            ):
+                status, output = self.cli("parallel", QUERY, "--urls-only", "--num", "1")
+                self.assertEqual(status, 1)
+                self.assertEqual(json.loads(output), {"error": "Invalid Parallel Search result"})
 
     def test_valid_empty_results_are_distinct_from_provider_failure(self):
         self.server.mode = "empty"
