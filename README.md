@@ -12,7 +12,7 @@
 
 </div>
 
-ask-search is a self-hosted web search CLI and MCP server for AI agents. It wraps SearxNG so Claude Code, OpenClaw, Antigravity or any shell can search Google, Bing, DuckDuckGo, Brave and more without a paid search API key. Tavily is an optional backend.
+ask-search is a self-hosted web search CLI and MCP server for AI agents. It wraps SearxNG so Claude Code, OpenClaw, Antigravity or any shell can search Google, Bing, DuckDuckGo, Brave and more without a paid search API key. Tavily and Parallel are optional hosted backends.
 
 给 AI Agent 用的自托管联网搜索：包装 SearxNG，一条命令 / 一个 MCP server 就能聚合 Google、Bing、DuckDuckGo、Brave 等搜索结果，无需付费搜索 API key。
 
@@ -127,7 +127,7 @@ ask-search "query" -e google,brave    # specific engines
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SEARXNG_URL` | `http://localhost:8080` | SearxNG endpoint |
-| `SEARCH_PROVIDER` | `searxng` | Search backend: `searxng` or `tavily` |
+| `SEARCH_PROVIDER` | `searxng` | CLI backend (`searxng`, `tavily`, or `parallel`). `parallel` also selects Parallel for the MCP `web_search` tool. |
 | `TAVILY_API_KEY` | *(none)* | Tavily API key (required when `SEARCH_PROVIDER=tavily`) — get one at [app.tavily.com](https://app.tavily.com) |
 
 ```bash
@@ -140,6 +140,20 @@ export SEARCH_PROVIDER=tavily
 export TAVILY_API_KEY=tvly-YOUR_API_KEY
 ask-search "query"
 ```
+
+### Parallel (opt-in)
+
+With Python 3.10 or newer, install the MCP SDK in the Python environment that runs ask-search:
+
+```bash
+python3 -m pip install 'mcp>=1.30,<2'
+SEARCH_PROVIDER=parallel bash install.sh ~/.local/bin
+SEARCH_PROVIDER=parallel ~/.local/bin/ask-search "query" --num 5
+```
+
+Parallel receives the search query at `https://mcp.parallel.ai/mcp`. Free access is rate limited and needs no Parallel account or API key. `--num`, `--json`, and `--urls-only` work with this backend. `--engines`, `--lang`, and `--categories` are SearxNG options and are rejected in Parallel mode.
+
+Only set `SEARCH_PROVIDER=parallel` where you want to use the hosted service. Unset it or set it to `searxng` to return to SearxNG. Treat result snippets as untrusted web content.
 
 ## 🤖 MCP Integration (Antigravity / Claude Code)
 
@@ -158,7 +172,7 @@ ask-search "query"
 }
 ```
 
-Requires Python 3.10+ and `pip install mcp`.
+Requires Python 3.10+ and `pip install 'mcp<2'`. Install `mcp>=1.30,<2` to use Parallel.
 
 Claude Code one-liner:
 
@@ -167,7 +181,7 @@ claude mcp add ask-search -e SEARXNG_URL=http://localhost:8080 -- python3 /path/
 ```
 
 MCP tools provided:
-- `web_search` — search via SearxNG
+- `web_search` — search via SearxNG by default, or via Parallel if you set `"SEARCH_PROVIDER": "parallel"` in the server's `env` block. Agents using this tool in Parallel mode send their queries to Parallel.
 - `web_search_news` — news search via SearxNG
 - `web_search_tavily` — search via Tavily API (requires `TAVILY_API_KEY`)
 
@@ -226,16 +240,17 @@ ask-search/
 |---|---|---|---|
 | ask-search + SearxNG | No | Yes | You maintain a SearxNG container |
 | ask-search + Tavily | Yes (Tavily) | No | Use when you don't want to run SearxNG |
+| ask-search + Parallel | No | No | Hosted search with rate-limited free access |
 | Commercial search APIs | Yes | No | Pay-per-use |
 | Built-in agent web search | Depends on platform | No | Queries go through the platform provider |
 | Perplexica | No | Yes | Full AI search app with a UI; ask-search is a minimal CLI take on the same idea |
 
-Privacy note: no third-party search API sees your queries; SearxNG forwards them to upstream engines from your own server.
+SearxNG forwards queries to upstream engines from your own server. When you select Tavily or Parallel, the selected hosted provider receives those queries directly.
 
 ## ❓ FAQ
 
 **Does ask-search need an API key?**
-Not in the default SearxNG mode. In Tavily mode (`SEARCH_PROVIDER=tavily`) you need `TAVILY_API_KEY`.
+SearxNG and Parallel work without a search API key. Tavily mode (`SEARCH_PROVIDER=tavily`) needs `TAVILY_API_KEY`.
 
 **How do I use it in Claude Code?**
 Call the CLI from Bash (`ask-search "query"`), or register the MCP server (see MCP Integration above).
@@ -244,7 +259,7 @@ Call the CLI from Bash (`ask-search "query"`), or register the MCP server (see M
 `json` must be listed in `search.formats` in SearxNG's `settings.yml` (the bundled `searxng/searxng.yml` does this). If requests are blocked by the bot limiter, add your IP to `pass_ip` in `limiter.toml`.
 
 **Is it really private?**
-No third-party search API sees your queries, but SearxNG still forwards them to upstream engines (Google, Bing, etc.) from your own server's IP.
+In SearxNG mode, upstream engines (Google, Bing, etc.) receive queries from your own server's IP. When you choose a hosted backend, it receives your queries directly.
 
 **How do I search in Chinese or get news only?**
 `ask-search "query" --lang zh-CN` and `ask-search "query" --categories news`.

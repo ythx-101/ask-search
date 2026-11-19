@@ -14,7 +14,7 @@ Usage:
 
 Environment:
   SEARXNG_URL       SearxNG endpoint (default: http://localhost:8080)
-  SEARCH_PROVIDER   "searxng" (default) or "tavily"
+  SEARCH_PROVIDER   "searxng" (default), "tavily", or "parallel"
   TAVILY_API_KEY    Tavily API key (required when SEARCH_PROVIDER=tavily)
 """
 import sys, json, urllib.parse, argparse, os, subprocess
@@ -106,6 +106,13 @@ def main():
         provider = _get_search_provider()
         if provider == "tavily":
             results = tavily_search(args.query, args.num)
+        elif provider == "parallel":
+            if any(option is not None for option in (args.engines, args.lang, args.categories)):
+                raise RuntimeError("Parallel does not support --engines, --lang, or --categories")
+            import asyncio
+            from parallel_search import parallel_search
+
+            results = asyncio.run(parallel_search(args.query, args.num))
         else:
             results = search(args.query, args.num, args.engines, args.lang, args.categories)
     except Exception as e:
