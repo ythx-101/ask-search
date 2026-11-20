@@ -14,8 +14,9 @@ Usage:
 
 Environment:
   SEARXNG_URL       SearxNG endpoint (default: http://localhost:8080)
-  SEARCH_PROVIDER   "searxng" (default) or "tavily"
+  SEARCH_PROVIDER   "searxng" (default), "tavily" or "keenable"
   TAVILY_API_KEY    Tavily API key (required when SEARCH_PROVIDER=tavily)
+  KEENABLE_API_KEY  Keenable API key (optional; keyless public tier without it)
 """
 import sys, json, urllib.parse, argparse, os, subprocess
 
@@ -38,6 +39,32 @@ def tavily_search(query, num=10):
     client = TavilyClient(api_key=api_key)
     response = client.search(query=query, max_results=min(num, 20), search_depth="basic")
     return response.get("results", [])
+
+# --- Keenable support (opt-in via SEARCH_PROVIDER=keenable, no key needed) ---
+
+KEENABLE_BASE_URL = "https://api.keenable.ai"
+
+def keenable_search(query, num=10):
+    """Search via Keenable. Uses the keyless public endpoint unless KEENABLE_API_KEY is set."""
+    import urllib.request
+    headers = {"Content-Type": "application/json", "Accept": "application/json",
+               "User-Agent": f"ask-search/{VERSION}"}
+    api_key = os.environ.get("KEENABLE_API_KEY")
+    if api_key:
+        path = "/v1/search"
+        headers["X-API-Key"] = api_key
+    else:
+        path = "/v1/search/public"
+        headers["X-Keenable-Title"] = "ask-search"
+    body = json.dumps({"query": query, "max_results": min(num, 20)}).encode("utf-8")
+    req = urllib.request.Request(KEENABLE_BASE_URL + path, data=body, headers=headers, method="POST")
+    with urllib.request.urlopen(req, timeout=15) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    return [
+        {"title": r.get("title") or "", "url": r.get("url", ""),
+         "content": r.get("snippet") or r.get("description") or ""}
+        for r in data.get("results") or [] if r.get("url")
+    ][:num]
 
 def _search_url():
     base = os.environ.get("SEARXNG_URL", "http://localhost:8080")
@@ -106,6 +133,8 @@ def main():
         provider = _get_search_provider()
         if provider == "tavily":
             results = tavily_search(args.query, args.num)
+        elif provider == "keenable":
+            results = keenable_search(args.query, args.num)
         else:
             results = search(args.query, args.num, args.engines, args.lang, args.categories)
     except Exception as e:

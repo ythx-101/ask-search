@@ -31,14 +31,16 @@ A small Python CLI (`ask-search`) plus an MCP server. For people running AI agen
 ## Environment variables
 
 - `SEARXNG_URL` — SearxNG endpoint (default `http://localhost:8080`)
-- `SEARCH_PROVIDER` — `searxng` (default) or `tavily`
+- `SEARCH_PROVIDER` — `searxng` (default), `tavily` or `keenable`
 - `TAVILY_API_KEY` — required when `SEARCH_PROVIDER=tavily`
+- `KEENABLE_API_KEY` — optional for `SEARCH_PROVIDER=keenable` (keyless without it)
 
 ## MCP tools
 
 - `web_search` — search via SearxNG
 - `web_search_news` — news search via SearxNG
 - `web_search_tavily` — search via Tavily (needs `TAVILY_API_KEY`)
+- `web_search_keenable` — search via Keenable (no key needed)
 
 The MCP server needs Python 3.10+ and `pip install mcp`.
 
