@@ -127,8 +127,9 @@ ask-search "query" -e google,brave    # specific engines
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SEARXNG_URL` | `http://localhost:8080` | SearxNG endpoint |
-| `SEARCH_PROVIDER` | `searxng` | Search backend: `searxng` or `tavily` |
+| `SEARCH_PROVIDER` | `searxng` | Search backend: `searxng`, `tavily` or `keenable` |
 | `TAVILY_API_KEY` | *(none)* | Tavily API key (required when `SEARCH_PROVIDER=tavily`) — get one at [app.tavily.com](https://app.tavily.com) |
+| `KEENABLE_API_KEY` | *(none)* | Optional Keenable API key. Without it `SEARCH_PROVIDER=keenable` uses the free keyless tier (rate limited per IP) |
 
 ```bash
 # SearxNG (default)
@@ -138,6 +139,10 @@ ask-search "query"
 # Tavily (opt-in)
 export SEARCH_PROVIDER=tavily
 export TAVILY_API_KEY=tvly-YOUR_API_KEY
+ask-search "query"
+
+# Keenable (opt-in, no key needed)
+export SEARCH_PROVIDER=keenable
 ask-search "query"
 ```
 
@@ -170,6 +175,7 @@ MCP tools provided:
 - `web_search` — search via SearxNG
 - `web_search_news` — news search via SearxNG
 - `web_search_tavily` — search via Tavily API (requires `TAVILY_API_KEY`)
+- `web_search_keenable` — search via Keenable (no key needed, `KEENABLE_API_KEY` optional)
 
 ## 🦞 OpenClaw Skill
 

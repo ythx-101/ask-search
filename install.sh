@@ -54,6 +54,8 @@ fi
 echo ""
 if [ "$(echo "${SEARCH_PROVIDER:-searxng}" | tr '[:upper:]' '[:lower:]')" = "tavily" ]; then
     echo "Tavily mode — skip SearxNG check"
+elif [ "$(echo "${SEARCH_PROVIDER:-searxng}" | tr '[:upper:]' '[:lower:]')" = "keenable" ]; then
+    echo "Keenable mode — skip SearxNG check"
 else
     echo "Testing connection to SearxNG at ${SEARXNG_URL:-http://localhost:8080} ..."
     if python3 "$SCRIPT_DIR/scripts/core.py" "test" --num 1 &>/dev/null; then

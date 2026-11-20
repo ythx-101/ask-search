@@ -44,3 +44,4 @@ bash install.sh            # installs the `ask-search` command (sudo, or: bash i
 ```
 
 Optional Tavily backend: `SEARCH_PROVIDER=tavily` + `TAVILY_API_KEY` (`--engines/--lang/--categories` are ignored in this mode).
+Optional Keenable backend: `SEARCH_PROVIDER=keenable`, no key needed (`KEENABLE_API_KEY` optional; same flags ignored).

@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import unittest
@@ -72,3 +73,46 @@ class TavilyTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class KeenableTests(unittest.TestCase):
+    def _resp(self, payload):
+        resp = mock.MagicMock()
+        resp.read.return_value = json.dumps(payload).encode("utf-8")
+        resp.__enter__.return_value = resp
+        return resp
+
+    def test_keyless_public_endpoint(self):
+        payload = {"results": [
+            {"title": "A", "url": "https://a", "snippet": "sa"},
+            {"title": "B", "url": "https://b", "description": "db"},
+            {"title": "no url"},
+        ]}
+        with mock.patch.dict(os.environ, {}, clear=True), \
+             mock.patch("urllib.request.urlopen", return_value=self._resp(payload)) as op:
+            results = core.keenable_search("q", num=5)
+        req = op.call_args[0][0]
+        self.assertEqual(req.full_url, "https://api.keenable.ai/v1/search/public")
+        self.assertEqual(req.get_method(), "POST")
+        self.assertEqual(req.get_header("X-keenable-title"), "ask-search")
+        self.assertIsNone(req.get_header("X-api-key"))
+        self.assertEqual(json.loads(req.data), {"query": "q", "max_results": 5})
+        self.assertEqual(results, [
+            {"title": "A", "url": "https://a", "content": "sa"},
+            {"title": "B", "url": "https://b", "content": "db"},
+        ])
+
+    def test_api_key_uses_keyed_endpoint(self):
+        with mock.patch.dict(os.environ, {"KEENABLE_API_KEY": "k"}, clear=True), \
+             mock.patch("urllib.request.urlopen", return_value=self._resp({"results": []})) as op:
+            self.assertEqual(core.keenable_search("q", num=50), [])
+        req = op.call_args[0][0]
+        self.assertEqual(req.full_url, "https://api.keenable.ai/v1/search")
+        self.assertEqual(req.get_header("X-api-key"), "k")
+        self.assertIsNone(req.get_header("X-keenable-title"))
+        self.assertEqual(json.loads(req.data)["max_results"], 20)
+
+    def test_provider_keenable(self):
+        with mock.patch.dict(os.environ, {"SEARCH_PROVIDER": "Keenable"}):
+            self.assertEqual(core._get_search_provider(), "keenable")
+
